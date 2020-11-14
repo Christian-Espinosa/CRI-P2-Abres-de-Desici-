@@ -40,6 +40,7 @@ def treatdata(dataset):
     dataset1 = dataset1.reset_index(drop=True)
     return dataset1
 
+
 def entropia(ds, atributo=None):
     # ID3
     eps = np.finfo(float).eps
@@ -51,19 +52,50 @@ def entropia(ds, atributo=None):
             aux = ds.play.value_counts()[v]/len(ds.play)
             ent += -aux*np.log2(aux)
     else:
-        vars = ds[atributo].unique()
-        for v in vars:
+        vs = ds[atributo].unique()
+        for v in vs:
             ent_v = 0
             for t in val:
-                n = len(ds[atributo][ds[atributo]==v][ds.play==t])
+                n = len(ds[atributo][ds[atributo] == v][ds.play == t])
                 d = len(ds[atributo][ds[atributo] == v])
                 f = n/(d+eps)
+                ent_v += -f*np.log2(f+eps)
+            f2 = d/len(ds)
+            ent += -f2*ent_v
     return ent
 
 
+def mejor_attr(ds, criterio):
+    llaves = list(ds.keys())[:-1]
+    # Seleccionem el millor atribut segons el guany d'informació o el ratio de guany
+    if criterio == 'ID3':
+        gains = [gains_bruh(ds, atr) for atr in llaves]
+        return llaves[np.argmax(gains)]
+    else:
+        return
+
+
+def gains_bruh(s, a):
+    return entropia(s)-entropia(s, a);
+
+
+def arbol_rec(ds,criterio, arbol=None):
+    # Selección del mejor atributo
+    atr = mejor_attr(ds)
+    # Obtenemos los diferentes valores que puede tomar el atributo
+    pos_vals = np.unique(ds[atr])
+    if arbol is None:
+        arbol = {}
+        arbol[atr]
+    # Construcción del arbol
+    for val in pos_vals:
+        new_ds = ds[ds[atr] == val].reset_index(drop=True)
+        # CHRISTIAN SIGUE POR AQUÍ
+
 def main():
-    dataset = load_dataset('/data/ad.data')
+    dataset = load_dataset('data/ad.data')
     dataset = treatdata(dataset)
+    print(11111)
 
 
 if __name__ == '__main__':
