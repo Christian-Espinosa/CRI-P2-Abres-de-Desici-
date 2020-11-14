@@ -90,7 +90,11 @@ def arbol_rec(ds,criterio, arbol=None):
     # Construcción del arbol
     for val in pos_vals:
         new_ds = ds[ds[atr] == val].reset_index(drop=True)
-        # CHRISTIAN SIGUE POR AQUÍ
+        # CHRISTIAN SIGUE POR AQUÍ- okiiiiiiiiiiiiiiiiii
+        v, c = np.unique(new_ds['Eat'], return_counts=True)#<-------------------
+        if len(c) == 1:
+            arbol[atr][val] = v[0]
+
 
 def main():
     dataset = load_dataset('data/ad.data')
