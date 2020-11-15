@@ -43,12 +43,12 @@ def treatdata(dataset):
     dataset1 = dataset1.reset_index(drop=True)
     # eliminar columnas con valores no binarios(CAMBIAR POR FACTORIZE)
     # dataset1 = dataset1.drop(columns=[0, 1, 2])
-    p = pd.factorize(dataset[dataset.keys()[0]])
-    dataset[dataset.keys()[0]] = p[0]
-    p = pd.factorize(dataset[dataset.keys()[1]])
-    dataset[dataset.keys()[1]] = p[0]
-    p = pd.factorize(dataset[dataset.keys()[2]])
-    dataset[dataset.keys()[2]] = p[0]
+    s, b = pd.qcut(dataset1[dataset.keys()[0]], q=2, retbins=True, labels=False)
+    dataset1[dataset.keys()[0]] = pd.cut(dataset1[dataset.keys()[0]], bins=b, labels=False)
+    s, b = pd.qcut(dataset1[dataset.keys()[1]], q=2, retbins=True, labels=False)
+    dataset1[dataset.keys()[1]] = pd.cut(dataset1[dataset.keys()[1]], bins=b, labels=False)
+    s, b = pd.qcut(dataset1[dataset.keys()[2]], q=2, retbins=True, labels=False)
+    dataset1[dataset.keys()[2]] = pd.cut(dataset1[dataset.keys()[2]], bins=b, labels=False)
     return dataset1
 
 """
