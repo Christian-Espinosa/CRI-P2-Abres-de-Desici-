@@ -34,6 +34,14 @@ def load_dataset(path):
     dataset = pd.read_csv(path, header=None, delimiter=',')
     return dataset
 
+
+def fill_values(dataset1):
+
+    for key in dataset1.keys():
+        dataset1[key] = pd.to_numeric(dataset1[key], errors='coerce')
+        values, counts = np.unique(dataset1[key], return_counts=True) # MISSING VALUES SUBSTITUITS PER MODA DEL ATRIBUT
+        dataset1[key] = dataset1[key].fillna(values[np.argmax(counts)])
+    return dataset1
 def treatdata(dataset):
 
     n = pd.factorize(dataset[dataset.keys()[-1]].values)
@@ -41,7 +49,7 @@ def treatdata(dataset):
     dataset = dataset.apply(pd.to_numeric, errors='coerce')
 
 
-    #dataset1 = dataset.fillna(dataset.median(), axis=1)
+    # dataset1 = dataset.dropna() MISSING VALUES SIMPLE
     dataset1 = dataset.reset_index(drop=True)
     # eliminar columnas con valores no binarios(CAMBIAR POR FACTORIZE)
     # dataset1 = dataset1.drop(columns=[4, 5, 6])
@@ -52,10 +60,7 @@ def treatdata(dataset):
     s, b = pd.qcut(dataset1[dataset.keys()[2]], q=2, retbins=True, labels=False)
     dataset1[dataset.keys()[2]] = pd.cut(dataset1[dataset.keys()[2]], bins=b, labels=False)
     dataset1 = dataset1.reset_index(drop=True)
-    for key in dataset1.keys():
-        dataset1[key] = pd.to_numeric(dataset1[key], errors='coerce')
-        values, counts = np.unique(dataset1[key], return_counts=True)
-        dataset1[key] = dataset1[key].fillna(values[np.argmax(counts)])
+    dataset1 = fill_values(dataset1)
     return dataset1
 
 """
@@ -95,8 +100,8 @@ def cross_validation(dataset, cv):
         x_tr = f.copy()
         x_s = f[i]
         x_tr = pd.concat(x_tr, sort=False)
-        x_tr = x_tr.dropna()
-        x_s = x_s.dropna()
+        x_tr = fill_values(x_tr)
+        x_s = fill_values(x_s)
         arbol = grow_tree(x_tr, target, 0, 2)
         y_pred = []
         for x in x_s.values:
@@ -240,8 +245,8 @@ def main():
     # new_targ = [1,0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1]
     train_set = dataset.drop(dataset.index[1887:])
     test_set = dataset.drop(dataset.index[:1887])
-    train_set = train_set.dropna()
-    test_set = test_set.dropna()
+    train_set = fill_values(train_set)
+    test_set = fill_values(test_set)
     # ds = dataset.drop(dataset.index[400:])
 
     beg = time.time()
