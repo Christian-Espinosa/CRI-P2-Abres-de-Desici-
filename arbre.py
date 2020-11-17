@@ -82,26 +82,6 @@ def entropia(ds, atributo=None):
 """
 
 
-def fast_entr(atr):
-    values, value_count = np.unique(atr, return_counts=True)
-    entr = np.sum([(-value_count[x]/np.sum(value_count))*np.log2(value_count[x]/np.sum(value_count))
-                   for x in range(len(values))])
-    return entr
-
-
-def fast_gain(ds, atr, target):
-    S = fast_entr(ds[target])
-    values, value_count = np.unique(ds[target], return_counts=True)
-    rel_entr = np.sum([(value_count[x]/np.sum(value_count))*fast_entr(ds.where(ds[atr] == values[x]).dropna()[target])
-                       for x in range(len(values))])
-    return S-rel_entr
-
-
-def score(sco, x_tr, x_s):
-    sco.fit(x_tr, x_tr.keys()[-1])
-    return sco.score(x_s, x_s.keys()[-1])
-
-
 def cross_validation(dataset, cv):
     criterio = 0  # ID3
     target = dataset.keys()[-1]
@@ -111,8 +91,15 @@ def cross_validation(dataset, cv):
         x_tr = f.copy()
         x_s = f[i]
         x_tr = pd.concat(x_tr, sort=False)
-        arbol = grow_tree(dataset, target, 0, 2)
-        sco = accuracy(arbol, x_tr.copy(), x_s.copy())
+        x_tr = x_tr.dropna()
+        x_s = x_s.dropna()
+        arbol = grow_tree(x_tr, target, 0, 1)
+        y_pred = []
+        for x in x_s.values:
+            y_pred.append(predict(x, arbol, list(arbol.keys())[0], 2))
+        y_pred = np.hstack(y_pred)
+        y_targ = x_s[x_s.keys()[-1]].values
+        sco = accuracy(y_targ, y_pred)
         score.append(sco)
     return score
 
@@ -146,10 +133,17 @@ def simple_entr(ds, atr=None):
 def gini(ds, atr=None):
     target = ds.keys()[-1]
     g = 1
+    values, counts = np.unique(ds[target], return_counts=True)
     if atr is None:
-        values, counts = np.unique(ds[target], return_counts=True)
         for val in values:
             g -= (counts[val]/np.sum(counts))*(counts[val]/np.sum(counts))
+    else:
+        v, c = np.unique(ds[atr], return_counts=True)
+        for val in v:
+            g -= (c[int(val)]/np.sum(c))*(c[int(val)]/np.sum(c))  # * np.sum(c)/np.sum(counts)
+        g *= np.sum(c)/np.sum(counts)
+    return g
+
 
 def mejor_attr(ds, criterio):
     # Selección del mejor atributo segun el criterio de decisión
@@ -158,7 +152,9 @@ def mejor_attr(ds, criterio):
         gains = [gains_bruh(ds, atr) for atr in ds.keys()[:-1]]
         return ds.keys()[:-1][np.argmax(gains)]
     else:
-        return
+        s_g = gini(ds)
+        gains = [s_g - gini(ds, atr) for atr in ds.keys()[:-1]]
+        return ds.keys()[:-1][np.argmax(gains)]
 
 
 def gains_bruh(s, a):
@@ -214,7 +210,8 @@ def grow_tree(ds, target, depth, max_depth=5, father=None):
         vals, cnt = np.unique(ds[best_feat], return_counts=True)
         for v in vals:
             depth += 1
-            arbol[best_feat][v] = grow_tree(ds[ds[best_feat] == v].reset_index(drop=True), target, depth, max_depth, father)
+            new_ds = ds[ds[best_feat] == v].reset_index(drop=True)
+            arbol[best_feat][v] = grow_tree(new_ds.drop(columns=best_feat), target, depth, max_depth, father)
         return arbol
 
 
@@ -239,26 +236,31 @@ def main():
     # new_targ = [1,0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1]
     train_set = dataset.drop(dataset.index[1887:])
     test_set = dataset.drop(dataset.index[:1887])
+    train_set = train_set.dropna()
+    test_set = test_set.dropna()
     # ds = dataset.drop(dataset.index[400:])
 
+    beg = time.time()
+    score_cv = cross_validation(dataset, 10)
     criterio = 0# ID3
     target = dataset.keys()[-1]
     # train_set[target] = new_targ
-    beg = time.time()
+
     # entrenamos a nuestro clasificador( creamos el arbol)
     # arbol = arbol_rec(train_set, criterio, target, 0)
-    # tree = grow_tree(train_set, target, 0, 2)
+    tree = grow_tree(train_set, target, 0, 2)
     tree_2 = {1243: {0: {351: {0: 1, 1: 1}}, 1: 1}}
-    end = time.time()
-    total = (end-beg)
     y_pred = []
     for x in test_set.values:
-        y_pred.append(predict(x, tree_2, list(tree_2.keys())[0], 2))
+        y_pred.append(predict(x, tree, list(tree.keys())[0], 2))
     y_pred = np.hstack(y_pred)
     y_targ = test_set[test_set.keys()[-1]].values
     score = accuracy(y_targ, y_pred)
+    end = time.time()
+    total = (end-beg)
+    print("score cross validation: ", np.mean(score_cv), "\n score sin validar: ", score)
     print(total)
-    print(tree_2)
+    print(tree)
 
 if __name__ == '__main__':
     main()
